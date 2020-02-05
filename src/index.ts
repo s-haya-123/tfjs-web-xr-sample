@@ -1,4 +1,6 @@
+import { VRM } from '@pixiv/three-vrm';
 import * as THREE from "three";
+import { loadVRM, setPose, animationLeg } from "./vrm";
 
 // init renderer
 var renderer = new THREE.WebGLRenderer({
@@ -14,7 +16,7 @@ renderer.domElement.style.width = `${window.innerWidth}px`;
 renderer.domElement.style.height = `${window.innerWidth}px`;
 document.body.appendChild(renderer.domElement);
 // array of functions for the rendering loop
-var onRenderFcts: any = [];
+
 // init scene and camera
 var scene = new THREE.Scene();
 //////////////////////////////////////////////////////////////////////////////////
@@ -28,8 +30,9 @@ var camera = new THREE.PerspectiveCamera(
   10);
 camera.position.z = 3;
 scene.add(camera);
-const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-light.position.set(0, 1, 0);
+
+const light = new THREE.DirectionalLight( 0xffffff );
+light.position.set( 1.0, 1.0, 1.0 ).normalize();
 scene.add(light);
 ////////////////////////////////////////////////////////////////////////////////
 //          handle arToolkitSource
@@ -70,13 +73,7 @@ arToolkitContext.init(function onCompleted() {
   // copy projection matrix to camera
   camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
 });
-// update artoolkit on every frame
-onRenderFcts.push(function() {
-  if (arToolkitSource.ready === false) return;
-  arToolkitContext.update(arToolkitSource.domElement);
-  // update scene.visible if the marker is seen
-  scene.visible = camera.visible;
-});
+
 const makerRoot = new THREE.Group();
 scene.add(makerRoot);
 
@@ -91,39 +88,29 @@ var markerControls = new THREEx.ArMarkerControls(arToolkitContext, makerRoot, {
 // as we do changeMatrixMode: 'cameraTransformMatrix', start with invisible scene
 scene.visible = false;
 
+let vrm: VRM;
+const clock = new THREE.Clock();
+
 // add a torus knot
-var geometry = new (THREE as any).CubeGeometry(1, 1, 1);
-var material = new THREE.MeshNormalMaterial({
-  transparent: true,
-  opacity: 0.5,
-  side: THREE.DoubleSide
-});
-var mesh = new THREE.Mesh(geometry, material);
-mesh.position.y = geometry.parameters.height / 2;
-
-makerRoot.add(mesh);
-
-onRenderFcts.push(function(delta: number) {
-  mesh.rotation.x += Math.PI * delta;
-  mesh.rotation.y += Math.PI * delta;
-});
-
-// render the scene
-onRenderFcts.push(function() {
-  renderer.render(scene, camera);
-});
-// run the rendering loop
-var lastTimeMsec: number;
-requestAnimationFrame(function animate(nowMsec) {
-  // keep looping
-  requestAnimationFrame(animate);
-
-  // measure time
-  lastTimeMsec = lastTimeMsec || nowMsec - 1000 / 60;
-  var deltaMsec = Math.min(200, nowMsec - lastTimeMsec);
-  lastTimeMsec = nowMsec;
-  // call each update function
-  onRenderFcts.forEach(function(onRenderFct: (a: number, b: number) => void) {
-    onRenderFct(deltaMsec / 1000, nowMsec / 1000);
-  });
-});
+setVRMOnScene(makerRoot, '../assets/sd9_2.vrm');
+async function setVRMOnScene(root: THREE.Group | THREE.Scene,fileName: string) {
+  vrm = await loadVRM(fileName);
+  root.add(vrm.scene);
+  setPose(vrm!.humanoid!);
+}
+function animate() {
+  requestAnimationFrame( animate );
+  if (arToolkitSource.ready === false) {
+    return;
+  }
+  arToolkitContext.update(arToolkitSource.domElement);
+  // update scene.visible if the marker is seen
+  scene.visible = camera.visible;
+  const deltaTime = clock.getDelta();
+  if(vrm) {
+      // blendShape(vrm, deltaTime);
+      animationLeg(vrm.humanoid!, clock);
+  }
+  renderer.render( scene, camera );
+}
+animate();
