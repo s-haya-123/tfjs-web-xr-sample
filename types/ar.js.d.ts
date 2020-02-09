@@ -4,12 +4,12 @@ declare module THREEx {
             config: {
                 // to read from the webcam
                 sourceType: 'webcam'
-                // // to read from an image
-                // sourceType : 'image',
-                // sourceUrl : THREEx.ArToolkitContext.baseURL + '../data/images/img.jpg',
-                // to read from a video
-                // sourceType : 'video',
-                // sourceUrl : THREEx.ArToolkitContext.baseURL + '../data/videos/headtracking.mp4',
+                // resolution of at which we initialize the source image
+                sourceWidth?: number,
+                sourceHeight?: number,
+                // resolution displayed for the source 
+                displayWidth?: number,
+                displayHeight?: number,
         });
         init(func: (arg: any) => void): void;
         onResizeElement(): void;
@@ -22,7 +22,9 @@ declare module THREEx {
         arController: any;
         constructor(config: {
         cameraParametersUrl: string,
-        detectionMode: "mono"
+        detectionMode: "mono",
+        canvasWidth?: number,
+        canvasHeight?: number
       });
       init(func: (arg: any) => void): void;
       getProjectionMatrix(): THREE.Matrix4;
