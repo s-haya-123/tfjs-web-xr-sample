@@ -118,7 +118,7 @@ function startAR() {
     }
     // if(mesh) mesh.position.set(point.x, point.y,0);
   }
-  setVRMOnScene(makerRoot, '../assets/sd9_3.vrm');
+  setVRMOnScene(makerRoot, './sd9_3.vrm');
   async function setVRMOnScene(root: THREE.Group | THREE.Scene,fileName: string) {
     vrm = await loadVRM(fileName);
     root.add(vrm.scene);
