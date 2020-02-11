@@ -1,9 +1,8 @@
 import { VRM } from '@pixiv/three-vrm';
 import * as THREE from "three";
 import { loadVRM, animationWalk, setWalkPose,resetPose,resetWalkPose,setPose,animationCatched } from "./vrm";
-import { start,runDetect } from './handdetection';
-import * as handtrackjs from "handtrackjs";
-import { ObjectLoader } from 'three';
+import * as handtrackjs from "../assets/handtrackjs/index";
+import * as comlink from 'comlink';
 
 document.getElementById('start')?.addEventListener('click',()=>{
   startAR();
@@ -43,7 +42,6 @@ function startAR() {
     // displayHeight: document.body.offsetHeight
   });
   arToolkitSource.init(function onReady(){
-    // onResize();
     setTimeout(()=>{onResize()},1000);
   });
   window.addEventListener("resize", function() {
@@ -82,31 +80,43 @@ function startAR() {
   let hand = new THREE.Vector2(-2,-2);
   const raycaster = new THREE.Raycaster();
   const clock = new THREE.Clock();
-  // const geometry = new (THREE as any).CubeGeometry(.1, .1, .1);
-  // const material = new THREE.MeshNormalMaterial();
+  const geometry = new (THREE as any).CubeGeometry(.1, .1, .1);
+  const material = new THREE.MeshNormalMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+  
+  let video: HTMLVideoElement;
+  const offscreenCanvas = new OffscreenCanvas(document.body.offsetWidth, document.body.offsetHeight);
+  const offCtx = offscreenCanvas.getContext("2d") as any;
   setTimeout(async ()=>{
-    await start();
-    predict();
-    timer(500);
+    const worker = new Worker("./handdetection.ts", { type: "module" });
+    video = document.getElementById("arjs-video") as HTMLVideoElement;
+    const api: any = await comlink.wrap(worker);
+    await api.init(document.body.offsetWidth, document.body.offsetHeight);
+    // await start();
+    predict(api);
+    timer(500, api);
   }, 2000);
   
-  function timer(msec: number) {
-    predict();
+  async function timer(msec: number,api: any) {
+    await predict(api);
     setTimeout(()=>{
-      timer(msec);
+      timer(msec, api);
     },msec);
   }
-  async function predict() {
-    const predictions = await runDetect();
+  async function predict(api: any) {
+    console.time('predict');
+    offCtx.drawImage(video, 0, 0);
+    const bitmap = offscreenCanvas.transferToImageBitmap();
+    const predictions = await api.detect(comlink.transfer(bitmap, [bitmap as any]));
     setRaycastVec(hand,predictions);
   }
   function setRaycastVec(point: THREE.Vector2, predictions: handtrackjs.prediction[]) {
-    // console.log(predictions)
     if (predictions.length) {
       const [x,y,width,height] = predictions[0].bbox;
       point.x = 1 - ( (x + width / 2) / document.body.offsetWidth) * 2;
-      point.y = 1 - ( (y + height) / document.body.offsetHeight ) * 2;
-      // if(mesh) mesh.visible = true;
+      point.y = 1 - ( (y + height / 2) / document.body.offsetHeight ) * 2;
+      if(mesh) mesh.visible = true;
     } else {
       mode = 'walk';
       resetPose(vrm!.humanoid!);
@@ -114,11 +124,11 @@ function startAR() {
       vrm.scene.position.set(0,0,0);
       point.x = -4;
       point.y = -4;
-      // if(mesh) mesh.visible = false;
+      if(mesh) mesh.visible = false;
     }
-    // if(mesh) mesh.position.set(point.x, point.y,0);
+    if(mesh) mesh.position.set(point.x, point.y,0);
   }
-  setVRMOnScene(makerRoot, './sd9_3.vrm');
+  setVRMOnScene(makerRoot, '../assets/sd9_3.vrm');
   async function setVRMOnScene(root: THREE.Group | THREE.Scene,fileName: string) {
     vrm = await loadVRM(fileName);
     root.add(vrm.scene);
