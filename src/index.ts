@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { loadVRM, animationWalk, setWalkPose,resetPose,resetWalkPose,setPose,animationCatched } from "./vrm";
 import * as handtrackjs from "../assets/handtrackjs/index";
 import * as comlink from 'comlink';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { runDetect, start } from './hadndetection'
 
 document.getElementById('start')?.addEventListener('click',()=>{
   startAR();
@@ -38,8 +40,6 @@ function startAR() {
   
   const arToolkitSource = new THREEx.ArToolkitSource({
     sourceType: "webcam",
-    // displayWidth: document.body.offsetWidth,
-    // displayHeight: document.body.offsetHeight
   });
   arToolkitSource.init(function onReady(){
     setTimeout(()=>{onResize()},1000);
@@ -80,24 +80,40 @@ function startAR() {
   let hand = new THREE.Vector2(-2,-2);
   const raycaster = new THREE.Raycaster();
   const clock = new THREE.Clock();
-  const geometry = new (THREE as any).CubeGeometry(.1, .1, .1);
+  const geometry = new (THREE as any).CubeGeometry(1, 1, 1);
   const material = new THREE.MeshNormalMaterial();
   const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+  makerRoot.add(mesh);
+  // let mesh:THREE.Object3D;
+  // let loader = new FBXLoader();
+  // loader.load("../assets/iman.fbx", group => {
+  //   group.name = "magnet";
+  //   // group.position.set(-3, 6, 0);
+  //   group.scale.set(.001, .001, .001);
+  //   group.rotation.set(1.5,0,1.5);
+  //   mesh = group;
+  //   scene.add(mesh);
+  //   console.log(mesh)
+  // });
+
   
   let video: HTMLVideoElement;
-  const offscreenCanvas = new OffscreenCanvas(document.body.offsetWidth, document.body.offsetHeight);
+  const offscreenCanvas:OffscreenCanvas = new OffscreenCanvas(document.body.offsetWidth, document.body.offsetHeight);
+  console.log(offscreenCanvas);
   const offCtx = offscreenCanvas.getContext("2d") as any;
   setTimeout(async ()=>{
-    const worker = new Worker("./handdetection.ts", { type: "module" });
+    const worker = new Worker("./worker-handdetection.ts", { type: "module" });
     video = document.getElementById("arjs-video") as HTMLVideoElement;
+    video.width = video.width || document.body.offsetWidth;
+    video.height = video.height || document.body.offsetHeight;
     const api: any = await comlink.wrap(worker);
     await api.init(document.body.offsetWidth, document.body.offsetHeight);
-    // await start();
+    await start();
     predict(api);
     timer(500, api);
-  }, 2000);
+  }, 1000);
   
+
   async function timer(msec: number,api: any) {
     await predict(api);
     setTimeout(()=>{
@@ -109,12 +125,15 @@ function startAR() {
     offCtx.drawImage(video, 0, 0);
     const bitmap = offscreenCanvas.transferToImageBitmap();
     const predictions = await api.detect(comlink.transfer(bitmap, [bitmap as any]));
+    // const predictions = await runDetect();
+    console.timeEnd('predict');
+    console.log(predictions)
     setRaycastVec(hand,predictions);
   }
   function setRaycastVec(point: THREE.Vector2, predictions: handtrackjs.prediction[]) {
     if (predictions.length) {
       const [x,y,width,height] = predictions[0].bbox;
-      point.x = 1 - ( (x + width / 2) / document.body.offsetWidth) * 2;
+      point.x = 1 - ( (x + width) / document.body.offsetWidth) * 2;
       point.y = 1 - ( (y + height / 2) / document.body.offsetHeight ) * 2;
       if(mesh) mesh.visible = true;
     } else {

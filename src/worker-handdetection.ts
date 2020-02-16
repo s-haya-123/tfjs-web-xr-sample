@@ -3,8 +3,8 @@ import * as comlink from "comlink";
 const modelParams = {
     flipHorizontal: true, // flip e.g for video
     maxNumBoxes: 1, // maximum number of boxes to detect
-    iouThreshold: 0.5, // ioU threshold for non-max suppression
-    scoreThreshold: 0.4,
+    iouThreshold: 0.3, // ioU threshold for non-max suppression
+    scoreThreshold: 0.2,
     path: '../assets/handtrackjs/web_model/model.json'
   };
 
@@ -16,6 +16,7 @@ comlink.expose({
     async init(width: number, height: number) {
         model = await handtrackjs.load(modelParams);
         canvas = new OffscreenCanvas(width,height);
+        console.log(canvas);
         ctx = canvas.getContext('2d');
         return;
     },
