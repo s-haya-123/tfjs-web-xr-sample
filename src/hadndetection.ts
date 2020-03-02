@@ -1,4 +1,6 @@
-// import * as handtrackjs from "../assets/handtrackjs/index";
+/*
+* WebWorkerを使用しないときのコード
+*/
 import * as handtrackjs from "handtrackjs";
 
 const modelParams = {

@@ -3,8 +3,6 @@ import * as THREE from "three";
 import { loadVRM, animationWalk, setWalkPose,resetPose,resetWalkPose,setPose,animationCatched } from "./vrm";
 import * as handtrackjs from "../assets/handtrackjs/index";
 import * as comlink from 'comlink';
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
-import { runDetect, start } from './hadndetection'
 
 document.getElementById('start')?.addEventListener('click',()=>{
   startAR();
@@ -80,22 +78,10 @@ function startAR() {
   let hand = new THREE.Vector2(-2,-2);
   const raycaster = new THREE.Raycaster();
   const clock = new THREE.Clock();
-  const geometry = new (THREE as any).CubeGeometry(1, 1, 1);
+  const geometry = new (THREE as any).CubeGeometry(.1, .1, .1);
   const material = new THREE.MeshNormalMaterial();
   const mesh = new THREE.Mesh(geometry, material);
-  makerRoot.add(mesh);
-  // let mesh:THREE.Object3D;
-  // let loader = new FBXLoader();
-  // loader.load("../assets/iman.fbx", group => {
-  //   group.name = "magnet";
-  //   // group.position.set(-3, 6, 0);
-  //   group.scale.set(.001, .001, .001);
-  //   group.rotation.set(1.5,0,1.5);
-  //   mesh = group;
-  //   scene.add(mesh);
-  //   console.log(mesh)
-  // });
-
+  scene.add(mesh);
   
   let video: HTMLVideoElement;
   const offscreenCanvas:OffscreenCanvas = new OffscreenCanvas(document.body.offsetWidth, document.body.offsetHeight);
@@ -108,7 +94,6 @@ function startAR() {
     video.height = video.height || document.body.offsetHeight;
     const api: any = await comlink.wrap(worker);
     await api.init(document.body.offsetWidth, document.body.offsetHeight);
-    await start();
     predict(api);
     timer(500, api);
   }, 1000);
@@ -121,13 +106,9 @@ function startAR() {
     },msec);
   }
   async function predict(api: any) {
-    console.time('predict');
     offCtx.drawImage(video, 0, 0);
     const bitmap = offscreenCanvas.transferToImageBitmap();
     const predictions = await api.detect(comlink.transfer(bitmap, [bitmap as any]));
-    // const predictions = await runDetect();
-    console.timeEnd('predict');
-    console.log(predictions)
     setRaycastVec(hand,predictions);
   }
   function setRaycastVec(point: THREE.Vector2, predictions: handtrackjs.prediction[]) {
@@ -155,8 +136,6 @@ function startAR() {
     animate();
   }
   let mode: 'walk' | 'catched' = 'walk'
-  let origin: THREE.Vector2;
-  let originVRM: THREE.Scene;
   function animate() {
     requestAnimationFrame( animate);
     if (arToolkitSource.ready === false) {
@@ -175,22 +154,16 @@ function startAR() {
                   mode = 'catched';
                   resetWalkPose(vrm!.humanoid!);
                   setPose(vrm);
-                  origin = hand.clone();
-                  originVRM = vrm.scene.clone();
               }
-              console.log('interact');
           }
-          // blendShape(vrm, deltaTime);
           switch(mode) {
               case 'walk':
-                  // console.log('walk')
                   animationWalk(vrm, clock,3,2);
                   break;
               case 'catched':
-                // console.log('catched')
                   animationCatched(vrm.humanoid!, clock);
-                  vrm.scene.position.x = (hand.x - origin.x) * 10;
-                  vrm.scene.position.y = (hand.y - origin.y) * 10;
+                  vrm.scene.position.x = hand.x * 10;
+                  vrm.scene.position.y = hand.y * 10;
                   console.log(vrm.scene.position.x,vrm.scene.position.y)
                   break;
           }

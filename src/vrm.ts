@@ -13,7 +13,6 @@ export function loadVRM(fileName: string): Promise<VRM> {
                 vrm = await VRM.from(gltf);
                 vrm.scene.rotation.y += 3;
                 vrm.scene.rotation.x -= 0.5;
-                // vrm.scene.scale.set(1.5,1.5,1.5);
                 resolve(vrm);
             },
             ( progress ) => console.log( 'Loading model...', 100.0 * ( progress.loaded / progress.total ), '%' ),
@@ -77,7 +76,6 @@ export function setWalkPose(humanoid: VRMHumanoid) {
     leftArm.rotation.z = 1.2;
 }
 export function resetWalkPose(humanoid: VRMHumanoid) {
-    console.log('reset walk')
     const rightArm = humanoid.getBoneNode(VRMSchema.HumanoidBoneName.RightUpperArm)!;
     const leftArm = humanoid.getBoneNode(VRMSchema.HumanoidBoneName.LeftUpperArm)!;
     rightArm.rotation.z = 0;
@@ -116,7 +114,6 @@ function animationWalkLeg(humanoid: VRMHumanoid, clock: THREE.Clock, speed: numb
 }
 export function animationCatched(humanoid: VRMHumanoid, clock: THREE.Clock, speed = 2) {
     const s = Math.sin( Math.PI * clock.elapsedTime * speed);
-    const c = Math.cos( Math.PI * clock.elapsedTime * speed);
     const s_high = Math.sin( Math.PI * clock.elapsedTime * speed * 2 + Math.PI / 2);
     const rightArm = humanoid.getBoneNode(VRMSchema.HumanoidBoneName.RightUpperArm)!;
     const leftArm = humanoid.getBoneNode(VRMSchema.HumanoidBoneName.LeftUpperArm)!;
