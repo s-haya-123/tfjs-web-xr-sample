@@ -3,10 +3,11 @@ import * as THREE from "three";
 import { loadVRM, animationWalk, setWalkPose,resetPose,resetWalkPose,setPose,animationCatched } from "./vrm";
 import * as handtrackjs from "../assets/handtrackjs/index";
 import * as comlink from 'comlink';
+import { runDetect, start } from './hadndetection';
 
 document.getElementById('start')?.addEventListener('click',()=>{
   startAR();
-  document.getElementById('start')!.remove();
+  document.getElementById('description')!.remove();
 });
 
 function startAR() {
@@ -85,30 +86,37 @@ function startAR() {
   
   let video: HTMLVideoElement;
   const offscreenCanvas:OffscreenCanvas = new OffscreenCanvas(document.body.offsetWidth, document.body.offsetHeight);
-  console.log(offscreenCanvas);
   const offCtx = offscreenCanvas.getContext("2d") as any;
   setTimeout(async ()=>{
+    /* 
+    本書で説明したWebWorkerを使う形式の場合
     const worker = new Worker("./worker-handdetection.ts", { type: "module" });
     video = document.getElementById("arjs-video") as HTMLVideoElement;
     video.width = video.width || document.body.offsetWidth;
     video.height = video.height || document.body.offsetHeight;
     const api: any = await comlink.wrap(worker);
     await api.init(document.body.offsetWidth, document.body.offsetHeight);
-    predict(api);
-    timer(500, api);
+    */
+    await start();
+    predict();
+    timer(500);
   }, 1000);
   
 
-  async function timer(msec: number,api: any) {
-    await predict(api);
+  async function timer(msec: number) {
+    await predict();
     setTimeout(()=>{
-      timer(msec, api);
+      timer(msec);
     },msec);
   }
-  async function predict(api: any) {
+  async function predict() {
+    /*
+    こちらもWorkerを使いたいときの設定
     offCtx.drawImage(video, 0, 0);
     const bitmap = offscreenCanvas.transferToImageBitmap();
     const predictions = await api.detect(comlink.transfer(bitmap, [bitmap as any]));
+    */
+    const predictions = await runDetect();
     setRaycastVec(hand,predictions);
   }
   function setRaycastVec(point: THREE.Vector2, predictions: handtrackjs.prediction[]) {
@@ -128,7 +136,8 @@ function startAR() {
     }
     if(mesh) mesh.position.set(point.x, point.y,0);
   }
-  setVRMOnScene(makerRoot, '../assets/sd9_3.vrm');
+  // VRMの名前を指定
+  setVRMOnScene(makerRoot, '../assets/watakushi.vrm');
   async function setVRMOnScene(root: THREE.Group | THREE.Scene,fileName: string) {
     vrm = await loadVRM(fileName);
     root.add(vrm.scene);
@@ -164,7 +173,6 @@ function startAR() {
                   animationCatched(vrm.humanoid!, clock);
                   vrm.scene.position.x = hand.x * 10;
                   vrm.scene.position.y = hand.y * 10;
-                  console.log(vrm.scene.position.x,vrm.scene.position.y)
                   break;
           }
       }

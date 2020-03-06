@@ -1,12 +1,12 @@
 /*
-* WebWorkerを使用しないときのコード
+    WebWorkerを使用しないとき
 */
 import * as handtrackjs from "handtrackjs";
 
 const modelParams = {
-    flipHorizontal: true, // flip e.g for video
-    maxNumBoxes: 1, // maximum number of boxes to detect
-    iouThreshold: 0.5, // ioU threshold for non-max suppression
+    flipHorizontal: true,
+    maxNumBoxes: 1,
+    iouThreshold: 0.5,
     scoreThreshold: 0.6,
     path: '../assets/handtrackjs/web_model/model.json'
   };
@@ -19,7 +19,6 @@ export function startVideo(video: HTMLVideoElement) {
 let model: handtrackjs.HandtrackModel;
 let video: HTMLVideoElement;
 export async function start() {
-    console.log("detect-hand start");
     model = await handtrackjs.load(modelParams);
     video = document.getElementById("arjs-video") as HTMLVideoElement;
     startVideo(video);

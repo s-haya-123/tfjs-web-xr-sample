@@ -1,9 +1,14 @@
+/*
+    アプデートしたhandtrack.jsを利用して、
+    WebWorker上で動作させる
+*/
 import * as handtrackjs from "../assets/handtrackjs/index";
 import * as comlink from "comlink";
+
 const modelParams = {
-    flipHorizontal: true, // flip e.g for video
-    maxNumBoxes: 1, // maximum number of boxes to detect
-    iouThreshold: 0.3, // ioU threshold for non-max suppression
+    flipHorizontal: true,
+    maxNumBoxes: 1,
+    iouThreshold: 0.3,
     scoreThreshold: 0.2,
     path: '../assets/handtrackjs/web_model/model.json'
   };
@@ -16,7 +21,6 @@ comlink.expose({
     async init(width: number, height: number) {
         model = await handtrackjs.load(modelParams);
         canvas = new OffscreenCanvas(width,height);
-        console.log(canvas);
         ctx = canvas.getContext('2d');
         return;
     },
